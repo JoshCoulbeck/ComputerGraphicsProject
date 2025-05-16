@@ -121,12 +121,14 @@ int main(void)
     // Load models
     Model teapot("../assets/teapot.obj");
     Model sphere("../assets/sphere.obj");
+    Model floor("../assets/plane.obj");
+
 
     // Load the textures
     teapot.addTexture("../assets/blue.bmp", "diffuse");
+    floor.addTexture("../assets/stones_diffuse.png", "diffuse");
 
-    // Use wireframe rendering (comment out to turn off)
-       // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
 
     // Define teapot object lighting properties
     teapot.ka = 0.2f;
@@ -137,6 +139,12 @@ int main(void)
     float linear = 0.1f;
     float quadratic = 0.02f;
 
+    
+    floor.ka = 0.2f;
+    floor.kd = 0.6f;
+    floor.ks = 0.1f;
+    floor.Ns = 10.0f;
+
     // Define light source properties
     glm::vec3 lightPosition = glm::vec3(2.0f, 2.0f, 2.0f);
     glm::vec3 lightColour = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -144,7 +152,7 @@ int main(void)
     // Add first point light source
     Light light;
     light.position = glm::vec3(2.0f, 2.0f, 2.0f);
-    light.colour = glm::vec3(1.0f, 1.0f, 1.0f);
+    light.colour = glm::vec3(0.0f, 1.0f, 0.0f);
     light.constant = 1.0f;
     light.linear = 0.1f;
     light.quadratic = 0.02f;
@@ -158,13 +166,14 @@ int main(void)
     // Add spotlight
     light.position = glm::vec3(0.0f, 3.0f, 0.0f);
     light.direction = glm::vec3(0.0f, -1.0f, 0.0f);
+    light.colour = glm::vec3(0.0f, 1.0f, 0.0f);
     light.cosPhi = std::cos(Maths::radians(45.0f));
     light.type = 2;
     lightSources.push_back(light);
 
     // Add directional light
     light.direction = glm::vec3(1.0f, -1.0f, 0.0f);
-    light.colour = glm::vec3(1.0f, 1.0f, 0.0f);
+    light.colour = glm::vec3(1.0f, 0.0f, 0.0f);
     light.type = 3;
     lightSources.push_back(light);
 
@@ -182,6 +191,9 @@ int main(void)
         glm::vec3(-1.0f,  1.0f, -2.0f)
     };
 
+   
+   
+
     // Add teapots to objects vector
     std::vector<Object> objects;
     Object object;
@@ -194,6 +206,16 @@ int main(void)
         object.angle = Maths::radians(20.0f * i);
         objects.push_back(object);
     }
+
+
+    Object floorObject;
+    floorObject.name = "floor";
+    floorObject.position = glm::vec3(0.0f, -2.5f, 0.0f);
+    floorObject.rotation = glm::vec3(0.0f, 1.0f, 0.0f);      
+    floorObject.angle = 0.0f;
+    floorObject.scale = glm::vec3(20.0f, 1.0f, 20.0f);       
+    objects.push_back(floorObject);
+
 
     // Render loop
     while (!glfwWindowShouldClose(window))
@@ -214,18 +236,7 @@ int main(void)
         // Activate shader
         glUseProgram(shaderID);
 
-        //Send light source properties to the shader
-        //glUniform1f(glGetUniformLocation(shaderID, "ka"), teapot.ka);
-        //glUniform1f(glGetUniformLocation(shaderID, "kd"), teapot.kd);
-       // glUniform3fv(glGetUniformLocation(shaderID, "lightColour"), 1, &lightColour[0]);
-       // glm::vec3 viewSpaceLightPosition = glm::vec3(camera.view * glm::vec4(lightPosition, 1.0f));
-       // glUniform3fv(glGetUniformLocation(shaderID, "lightPosition"), 1, &viewSpaceLightPosition[0]);
-       // glUniform1f(glGetUniformLocation(shaderID, "ks"), teapot.ks);
-       // glUniform1f(glGetUniformLocation(shaderID, "Ns"), teapot.Ns);
-       // glUniform1f(glGetUniformLocation(shaderID, "constant"), constant);
-       // glUniform1f(glGetUniformLocation(shaderID, "linear"), linear);
-       // glUniform1f(glGetUniformLocation(shaderID, "quadratic"), quadratic);
-
+        
         // Send multiple light source properties to the shader
         for (unsigned int i = 0; i < static_cast<unsigned int>(lightSources.size()); i++)
         {
@@ -269,8 +280,21 @@ int main(void)
             glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, &MVP[0][0]);
             glUniformMatrix4fv(glGetUniformLocation(shaderID, "MV"), 1, GL_FALSE, &MV[0][0]);
 
-            // Draw the model
-            teapot.draw(shaderID);
+            
+            if (objects[i].name == "teapot")
+            {
+                teapot.draw(shaderID);
+            }
+            else if (objects[i].name == "floor")
+            {
+                
+                glUniform1f(glGetUniformLocation(shaderID, "ka"), floor.ka);
+                glUniform1f(glGetUniformLocation(shaderID, "kd"), floor.kd);
+                glUniform1f(glGetUniformLocation(shaderID, "ks"), floor.ks);
+                glUniform1f(glGetUniformLocation(shaderID, "Ns"), floor.Ns);
+
+                floor.draw(shaderID);
+            }
         }
 
 
