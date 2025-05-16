@@ -13,10 +13,13 @@
 
 // Function prototypes
 void keyboardInput(GLFWwindow* window);
-
-
-
 void mouseInput(GLFWwindow* window);
+
+// Frame timers
+float previousTime = 0.0f;  // time of previous iteration of the loop
+float deltaTime = 0.0f;  // time elapsed since the previous frame
+
+
 
 // Create camera object
 Camera camera(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f));
@@ -29,11 +32,12 @@ struct Object
     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
     float angle = 0.0f;
     std::string name;
-
 };
-// Frame timer
-float previousTime = 0.0f;    // time of previous iteration of the loop
-float deltaTime = 0.0f;    // time elapsed since last iteration of the loop
+
+// Define light source properties
+glm::vec3 lightPosition = glm::vec3(2.0f, 2.0f, 2.0f);
+glm::vec3 lightColour = glm::vec3(1.0f, 1.0f, 1.0f);
+
 int main(void)
 {
     // =========================================================================
@@ -56,7 +60,7 @@ int main(void)
 
     // Open a window and create its OpenGL context
     GLFWwindow* window;
-    window = glfwCreateWindow(1024, 768, "Lab07 Moving the Camera", NULL, NULL);
+    window = glfwCreateWindow(1024, 768, "Lab08 Lighting", NULL, NULL);
 
     if (window == NULL) {
         fprintf(stderr, "Failed to open GLFW window.\n");
@@ -81,7 +85,7 @@ int main(void)
     // Enable depth test
     glEnable(GL_DEPTH_TEST);
 
-    // Enable back face culling
+    // Use back face culling
     glEnable(GL_CULL_FACE);
 
     // Ensure we can capture keyboard inputs
@@ -92,224 +96,81 @@ int main(void)
     glfwPollEvents();
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 
-    // Define cube object
-    // Define vertices
-    const float vertices[] = {
-        // front
-        -1.0f, -1.0f,  1.0f,    //              + ------ +
-         1.0f, -1.0f,  1.0f,    //             /|       /|
-         1.0f,  1.0f,  1.0f,    //   y        / |      / |
-        -1.0f, -1.0f,  1.0f,    //   |       + ------ +  |
-         1.0f,  1.0f,  1.0f,    //   + - x   |  + ----|- +
-        -1.0f,  1.0f,  1.0f,    //  /        | /      | /
-        // right                // z         |/       |/
-         1.0f, -1.0f,  1.0f,    //           + ------ +
-         1.0f, -1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f,  1.0f,
-         // back
-          1.0f, -1.0f, -1.0f,
-         -1.0f, -1.0f, -1.0f,
-         -1.0f,  1.0f, -1.0f,
-          1.0f, -1.0f, -1.0f,
-         -1.0f,  1.0f, -1.0f,
-          1.0f,  1.0f, -1.0f,
-          // left
-          -1.0f, -1.0f, -1.0f,
-          -1.0f, -1.0f,  1.0f,
-          -1.0f,  1.0f,  1.0f,
-          -1.0f, -1.0f, -1.0f,
-          -1.0f,  1.0f,  1.0f,
-          -1.0f,  1.0f, -1.0f,
-          // bottom
-          -1.0f, -1.0f, -1.0f,
-           1.0f, -1.0f, -1.0f,
-           1.0f, -1.0f,  1.0f,
-          -1.0f, -1.0f, -1.0f,
-           1.0f, -1.0f,  1.0f,
-          -1.0f, -1.0f,  1.0f,
-          // top
-          -1.0f,  1.0f,  1.0f,
-           1.0f,  1.0f,  1.0f,
-           1.0f,  1.0f, -1.0f,
-          -1.0f,  1.0f,  1.0f,
-           1.0f,  1.0f, -1.0f,
-          -1.0f,  1.0f, -1.0f,
-    };
-
-    // Define texture coordinates
-    const float uv[] = {
-        // front
-        0.0f, 0.0f,     // vertex co-ordinates are the same for each side
-        1.0f, 0.0f,     // of the cube so repeat every six vertices
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // right
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // back
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // left
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // bottom
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-        // top
-        0.0f, 0.0f,
-        1.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 0.0f,
-        1.0f, 1.0f,
-        0.0f, 1.0f,
-    };
-
-    // Define indices
-    unsigned int indices[] = {
-        0,   1,  2,  3,  4,  5,     // front
-        6,   7,  8,  9, 10, 11,     // right
-        12, 13, 14, 15, 16, 17,     // back
-        18, 19, 20, 21, 22, 23,     // left
-        24, 25, 26, 27, 28, 29,     // bottom
-        30, 31, 32, 33, 34, 35      // top
-    };
-
-    // Create the Vertex Array Object (VAO)
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    // Create Vertex Buffer Object (VBO)
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Create texture buffer
-    unsigned int uvBuffer;
-    glGenBuffers(1, &uvBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(uv), uv, GL_STATIC_DRAW);
-
-    // Create Element Buffer Object (EBO)
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
     // Compile shader program
-    unsigned int shaderID;
+    unsigned int shaderID, lightShaderID;
     shaderID = LoadShaders("vertexShader.glsl", "fragmentShader.glsl");
+    lightShaderID = LoadShaders("lightVertexShader.glsl", "lightFragmentShader.glsl");
+
+    // Activate shader
+    glUseProgram(shaderID);
+
+    // Load models
+    Model teapot("../assets/teapot.obj");
+    Model sphere("../assets/sphere.obj");
 
     // Load the textures
-    unsigned int texture;
-    texture = loadTexture("../assets/crate.jpg");
+    teapot.addTexture("../assets/blue.bmp", "diffuse");
 
-    // Send the texture uniforms to the fragment shader
-    glUseProgram(shaderID);
-    unsigned int textureID;
-    textureID = glGetUniformLocation(shaderID, "texture");
-    glUniform1i(textureID, 0);
+    // Use wireframe rendering (comment out to turn off)
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // Cube positions
-    glm::vec3 positions[] = {
-        glm::vec3(0.0f,  0.0f,  0.0f),
-        glm::vec3(2.0f,  5.0f, -10.0f),
-        glm::vec3(-3.0f, -2.0f, -3.0f),
-        glm::vec3(-4.0f, -2.0f, -8.0f),
-        glm::vec3(2.0f,  2.0f, -6.0f),
-        glm::vec3(-4.0f,  3.0f, -8.0f),
-        glm::vec3(0.0f, -2.0f, -5.0f),
-        glm::vec3(4.0f,  2.0f, -4.0f),
-        glm::vec3(2.0f,  0.0f, -2.0f),
-        glm::vec3(-1.0f,  1.0f, -2.0f)
-    };
+    // Define teapot object lighting properties
+    teapot.ka = 0.8f;
 
-    // Add cubes to objects vector
-    std::vector<Object> objects;
-    Object object;
-    object.name = "cube";
-    for (unsigned int i = 0; i < 10; i++)
-    {
-        object.position = positions[i];
-        object.rotation = glm::vec3(1.0f, 1.0f, 1.0f);
-        object.scale = glm::vec3(0.5f, 0.5f, 0.5f);
-        object.angle = Maths::radians(20.0f * i);
-        objects.push_back(object);
-    }
+    teapot.kd = 0.7f;
+
+    teapot.ks = 1.0f;
+    teapot.Ns = 20.0f;
 
     // Render loop
     while (!glfwWindowShouldClose(window))
     {
-
         // Update timer
         float time = glfwGetTime();
         deltaTime = time - previousTime;
         previousTime = time;
+
         // Get inputs
         keyboardInput(window);
+        mouseInput(window);
 
         // Clear the window
-        glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Send the VBO to the GPU
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        // Activate shader
+        glUseProgram(shaderID);
 
-        // Send the UV buffer to the GPU
-        glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        //Send light source properties to the shader
+        glUniform1f(glGetUniformLocation(shaderID, "ka"), teapot.ka);
+
+        glUniform1f(glGetUniformLocation(shaderID, "kd"), teapot.kd);
+        glUniform3fv(glGetUniformLocation(shaderID, "lightColour"), 1, &lightColour[0]);
+        glm::vec3 viewSpaceLightPosition = glm::vec3(camera.view * glm::vec4(lightPosition, 1.0f));
+        glUniform3fv(glGetUniformLocation(shaderID, "lightPosition"), 1, &viewSpaceLightPosition[0]);
 
         // Calculate view and projection matrices
+        camera.target = camera.eye + camera.front;
         camera.calculateMatrices();
 
-        // Loop through objects and draw each one
-        for (int i = 0; i < static_cast<unsigned int>(objects.size()); i++)
-        {
-            // Calculate the model matrix
-            glm::mat4 translate = Maths::translate(objects[i].position);
-            glm::mat4 scale = Maths::scale(objects[i].scale);
-            glm::mat4 rotate = Maths::rotate(objects[i].angle, objects[i].rotation);
-            glm::mat4 model = translate * rotate * scale;
+        // Calculate the model matrix
+        glm::mat4 translate;
+        glm::mat4 scale;
+        glm::mat4 rotate;
+        glm::mat4 model = translate * rotate * scale;
 
-            // Calculate the MVP matrix
-            glm::mat4 MVP = camera.projection * camera.view * model;
+        // Calculate the MVP matrix
+        glm::mat4 MVP = camera.projection * camera.view * model;
 
-            // Send MVP matrix to the vertex shader
-            unsigned int MVPID = glGetUniformLocation(shaderID, "MVP");
-            glUniformMatrix4fv(MVPID, 1, GL_FALSE, &MVP[0][0]);
+        // Send MVP matrix to the vertex shader
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "MVP"), 1, GL_FALSE, &MVP[0][0]);
 
-            // Draw the triangles
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, 0);
-        }
+        // Send MV matrix to the vertex shader
+        glm::mat4 MV = camera.view * model;
+        glUniformMatrix4fv(glGetUniformLocation(shaderID, "MV"), 1, GL_FALSE, &MV[0][0]);
 
-        glDisableVertexAttribArray(0);
-        glDisableVertexAttribArray(1);
+        // Draw teapot
+        teapot.draw(shaderID);
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -317,10 +178,7 @@ int main(void)
     }
 
     // Cleanup
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
-    glDeleteBuffers(1, &uvBuffer);
+    teapot.deleteBuffers();
     glDeleteProgram(shaderID);
 
     // Close OpenGL window and terminate GLFW
@@ -333,22 +191,19 @@ void keyboardInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // Move the camera using WSAD keys
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.eye += 5.0f * deltaTime * camera.front;
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.eye -= camera.front;
+        camera.eye -= 5.0f * deltaTime * camera.front;
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.eye -= camera.right;
+        camera.eye -= 5.0f * deltaTime * camera.right;
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.eye += camera.right;
-
-    mouseInput(window);
+        camera.eye += 5.0f * deltaTime * camera.right;
 }
-
-
 
 void mouseInput(GLFWwindow* window)
 {
@@ -358,6 +213,9 @@ void mouseInput(GLFWwindow* window)
     glfwSetCursorPos(window, 1024 / 2, 768 / 2);
 
     // Update yaw and pitch angles
-    camera.yaw += 0.0005f * float(xPos - 1024 / 2);
-    camera.pitch += 0.0005f * float(768 / 2 - yPos);
+    camera.yaw += 0.005f * float(xPos - 1024 / 2);
+    camera.pitch += 0.005f * float(768 / 2 - yPos);
+
+    // Calculate camera vectors from the yaw and pitch angles
+    camera.calculateCameraVectors();
 }
